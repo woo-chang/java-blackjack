@@ -1,98 +1,130 @@
 package blackjack.view;
 
-import static java.lang.String.format;
+import static blackjack.controller.BlackJackController.DEALER_EXTRA_DRAW_LIMIT;
+import static java.text.MessageFormat.format;
 
-import blackjack.view.dto.Result;
-import blackjack.domain.card.Card;
 import blackjack.domain.participant.Dealer;
-import blackjack.domain.participant.Participant;
-import blackjack.domain.participant.Player;
-import blackjack.domain.participant.Players;
+import blackjack.view.dto.CardDto;
 import blackjack.view.dto.ParticipantDto;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class OutputView {
 
-    public void printInitGame(final Dealer dealer, final Players players, final int count) {
-        System.out.println(format("%s와 %s에게 %d장을 나누었습니다.", dealer.getName(), getFormattedNames(players), count));
+    private static final String CARD_INFO_FORMAT = "{0}카드: {1}";
+
+    public void printInitGame(final ParticipantDto dealer, final List<ParticipantDto> players, final int count) {
+        System.out.println(format("{0}와 {1}에게 {2}장을 나누었습니다.", dealer.getName(), getFormattedNames(players), count));
+        printDealerCards(dealer);
+        for (final ParticipantDto player : players) {
+            printPlayerCards(player);
+        }
     }
 
-    private String getFormattedNames(final Players players) {
-        return players.getPlayers().stream()
-                .map(Player::getName)
+    private String getFormattedNames(final List<ParticipantDto> players) {
+        return players.stream()
+                .map(ParticipantDto::getName)
                 .collect(Collectors.joining(", "));
     }
 
-    public void printCards(final ParticipantDto dto) {
-        System.out.println(getParticipantCardsMessage(dto.getName(), dto.getCards()));
+    //인덱스를 사용하는데 카드가 1장도 없는 경우를 고려해야할까?
+    private void printDealerCards(final ParticipantDto dealer) {
+        final CardDto cardDto = dealer.getCardDto();
+        final List<String> cardInfos = cardDto.getCardInfos();
+        System.out.println(format(CARD_INFO_FORMAT, dealer.getName(), cardInfos.get(0)));
     }
 
-    private String getParticipantCardsMessage(final String name, final List<Card> cards) {
-        return format("%s: %s", name, getFormattedCards(cards));
+    public void printPlayerCards(final ParticipantDto player) {
+        final CardDto cardDto = player.getCardDto();
+        final List<String> cardInfos = cardDto.getCardInfos();
+        System.out.println(format(CARD_INFO_FORMAT, player.getName(), getFormattedCards(cardInfos)));
     }
 
-    private String getFormattedCards(final List<Card> cards) {
-        return cards.stream()
-                .map(Card::toString)
+    private String getFormattedCards(final List<String> cardInfos) {
+        return cardInfos.stream()
                 .collect(Collectors.joining(", "));
     }
 
     //딜러를 받는게 나을까? 여부만 받는게 나을까? 여부만 받게 되면 딜러 이름을 별도로 받아야 한다.
-    public void printIsDealerHit(final Dealer dealer) {
+    public void printDealerHit(final Dealer dealer) {
         System.out.println(getDealerHitMessage(dealer));
     }
 
     private String getDealerHitMessage(final Dealer dealer) {
+        //딜러 카드 제한 상수를 관리할 수 있는 방법이 없을까?
         if (dealer.isHit()) {
-            return format("%s는 16이하라 한장의 카드를 더 받았습니다.", dealer.getName());
+            return format("{0}는 {1}이하라 한장의 카드를 더 받았습니다.", dealer.getName(), DEALER_EXTRA_DRAW_LIMIT - 1);
         }
-        return format("%s는 17이상이라 한장의 카드를 더 받지 않았습니다.", dealer.getName());
+        return format("{0}는 {1}이상이라 한장의 카드를 더 받지 않았습니다.", dealer.getName(), DEALER_EXTRA_DRAW_LIMIT);
     }
 
-    public void printResult(final Participant participant, final Result result) {
-        System.out.println(getResultMessage(participant, result));
-    }
-
-    public String getResultMessage(final Participant participant, final Result result) {
-        final String participantCardsMessage = getParticipantCardsMessage(
-                participant.getName(), participant.getCards()
-        );
-        if (participant instanceof Dealer) {
-            return format("%s - 결과: %d", participantCardsMessage, result.getDealerScore());
+    public void printResult(final ParticipantDto dealer, final List<ParticipantDto> players) {
+        printParticipantResult(dealer);
+        for (final ParticipantDto player : players) {
+            printParticipantResult(player);
         }
-        return format("%s - 결과: %d", participantCardsMessage, result.getPlayerScore((Player) participant));
     }
 
-    public void printWinOrLose(final Dealer dealer, final Players players, final Result result) {
+    private void printParticipantResult(final ParticipantDto participant) {
+        final CardDto cardDto = participant.getCardDto();
+        final List<String> cardInfos = cardDto.getCardInfos();
+        System.out.println(format("{0}카드: {1} - 결과: {2}",
+                participant.getName(), getFormattedCards(cardInfos), cardDto.getScore()));
+    }
+
+    public void printWinOrLose(final ParticipantDto dealer, final List<ParticipantDto> players) {
         System.out.println("## 최종 승패");
-        printDealerWinOrLose(dealer, result);
-        printPlayersWinOrLose(players, result);
-    }
-
-    private void printDealerWinOrLose(final Dealer dealer, final Result result) {
-        final String win = getWinOrLoseMessage("승", result.getDealerWinCount());
-        final String draw = getWinOrLoseMessage("무", result.getDealerDrawCount());
-        final String lose = getWinOrLoseMessage("패", result.getDealerLoseCount());
-        System.out.println(format("%s: %s %s %s", dealer.getName(), win, draw, lose));
-    }
-
-    private String getWinOrLoseMessage(final String target, final int count) {
-        if (count == 0) {
-            return "";
-        }
-        return count + target;
-    }
-
-    private void printPlayersWinOrLose(final Players players, final Result result) {
-        for (final Player player : players.getPlayers()) {
-            System.out.println(format("%s: %s", player.getName(), getWinOrLoseMessage(player, result)));
+        printDealerWinOrLose(dealer, players);
+        for (final ParticipantDto player : players) {
+            printPlayerWinOrLose(dealer, player);
         }
     }
 
-    private String getWinOrLoseMessage(final Player player, final Result result) {
-        final int dealerScore = result.getDealerScore();
-        final int playerScore = result.getPlayerScore(player);
+    //view에서 계산을 하는게 맞을까?
+    private void printDealerWinOrLose(final ParticipantDto dealer, final List<ParticipantDto> players) {
+        final int dealerScore = dealer.getCardDto().getScore();
+        final List<Integer> playerScores = getPlayerScores(players);
+        final int win = getWinCount(dealerScore, playerScores);
+        final int draw = getDrawCount(dealerScore, playerScores);
+        final int lose = getLoseCount(dealerScore, playerScores);
+        System.out.println(format("{0}: {1}승 {2}무 {3}패", dealer.getName(), win, draw, lose));
+    }
+
+    private static List<Integer> getPlayerScores(final List<ParticipantDto> players) {
+        return players.stream()
+                .map(ParticipantDto::getCardDto)
+                .map(CardDto::getScore)
+                .collect(Collectors.toList());
+    }
+
+    private int getWinCount(final int dealerScore, final List<Integer> playerScores) {
+        return (int) playerScores.stream()
+                .filter(score -> dealerScore > score)
+                .count();
+    }
+
+    private int getDrawCount(final int dealerScore, final List<Integer> playerScores) {
+        return (int) playerScores.stream()
+                .filter(score -> dealerScore == score)
+                .count();
+    }
+
+    private int getLoseCount(final int dealerScore, final List<Integer> playerScores) {
+        return (int) playerScores.stream()
+                .filter(score -> dealerScore < score)
+                .count();
+    }
+
+    private void printPlayerWinOrLose(final ParticipantDto dealer, final ParticipantDto player) {
+        final int dealerScore = dealer.getCardDto().getScore();
+        final int playerScore = player.getCardDto().getScore();
+        final String result = getPlayerResult(dealerScore, playerScore);
+        System.out.println(format("{0}: {1}", player.getName(), result));
+    }
+
+    //view 에서 계산을 하는게 맞을까?
+    //TODO: view 에서 진행한다면 터졌을 때 승패 여부도 여기서 해야함
+    private String getPlayerResult(final int dealerScore, final int playerScore) {
         if (playerScore > dealerScore) {
             return "승";
         }

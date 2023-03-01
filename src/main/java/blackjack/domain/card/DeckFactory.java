@@ -1,9 +1,5 @@
 package blackjack.domain.card;
 
-import blackjack.domain.card.Card;
-import blackjack.domain.card.Deck;
-import blackjack.domain.card.Number;
-import blackjack.domain.card.Suit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,9 +17,9 @@ public class DeckFactory {
         TRUMP = cards;
     }
 
-    public static Deck createWithCount(int count) {
+    public static Deck makeWithPacks(int packCount) {
         final List<Card> cards = new ArrayList<>();
-        while (count-- > 0) {
+        while (packCount-- > 0) {
             cards.addAll(TRUMP);
         }
         return new Deck(cards);

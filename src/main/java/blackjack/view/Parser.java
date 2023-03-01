@@ -8,6 +8,7 @@ public class Parser {
 
     public List<String> parseNames(final String value, final String delimieter) {
         return Arrays.stream(value.split(delimieter))
+                .map(String::trim)
                 .collect(Collectors.toList());
     }
 }

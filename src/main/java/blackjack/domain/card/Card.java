@@ -14,8 +14,11 @@ public class Card {
         return number.getScore();
     }
 
-    @Override
-    public String toString() {
-        return number.getName() + suit.getName();
+    public String getSuitName() {
+        return suit.getName();
+    }
+
+    public String getNumber() {
+        return number.getName();
     }
 }

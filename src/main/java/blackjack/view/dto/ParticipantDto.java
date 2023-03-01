@@ -1,23 +1,29 @@
 package blackjack.view.dto;
 
-import blackjack.domain.card.Card;
-import java.util.List;
+import blackjack.domain.card.Cards;
+import blackjack.domain.participant.Participant;
 
 public class ParticipantDto {
 
     private final String name;
-    private final List<Card> cards;
+    private final CardDto cardDto;
 
-    public ParticipantDto(final String name, final List<Card> cards) {
+    private ParticipantDto(final String name, final CardDto cardDto) {
         this.name = name;
-        this.cards = cards;
+        this.cardDto = cardDto;
+    }
+
+    public static ParticipantDto from(final Participant participant) {
+        final String name = participant.getName();
+        final Cards cards = participant.getCards();
+        return new ParticipantDto(name, CardDto.from(cards));
     }
 
     public String getName() {
         return name;
     }
 
-    public List<Card> getCards() {
-        return cards;
+    public CardDto getCardDto() {
+        return cardDto;
     }
 }

@@ -1,19 +1,25 @@
 package blackjack.controller;
 
-import blackjack.view.dto.Result;
 import blackjack.domain.card.Deck;
 import blackjack.domain.card.DeckFactory;
+import blackjack.domain.card.DrawOption;
 import blackjack.domain.participant.Dealer;
+import blackjack.domain.participant.Participant;
+import blackjack.domain.participant.Participants;
 import blackjack.domain.participant.Player;
-import blackjack.domain.participant.Players;
 import blackjack.view.InputView;
 import blackjack.view.OutputView;
 import blackjack.view.dto.ParticipantDto;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 public class BlackJackController {
+
+    private static final int PACK_COUNT = 1;
+    private static final int INIT_CARD_COUNT = 2;
+    private static final int DRAW_LIMIT = 21;
+    public static final int DEALER_EXTRA_DRAW_LIMIT = 17;
 
     private final InputView inputView;
     private final OutputView outputView;
@@ -23,75 +29,84 @@ public class BlackJackController {
         this.outputView = outputView;
     }
 
-    //컨트롤러에서 하는 역할이 너무 많다. 나눌 수 없을까?
     public void run() {
-        //딜러와 플레이어는 하나의 리스트로 관리해도 괜찮지 않을까?
-        final Dealer dealer = new Dealer();
-        final Players players = Players.from(inputView.readPlayerNames());
-        final Deck deck = DeckFactory.createWithCount(1);
-        initGame(dealer, players, deck);
-        decideCardDraw(players, deck);
-        decideCardDraw(dealer, deck);
-        final Result result = calculateResult(dealer, players);
-        outputView.printResult(dealer, result);
-        outputView.printWinOrLose(dealer, players, result);
-    }
+        final Participants participants = gatherParticipants();
+        final Deck deck = DeckFactory.makeWithPacks(PACK_COUNT);
 
-    private void initGame(final Dealer dealer, final Players players, final Deck deck) {
         deck.shuffle();
-        final int count = 2;
-        for (int i = 0; i < count; i++) {
-            dealer.addCard(deck.draw());
-            players.addCard(deck);
-        }
-        outputView.printInitGame(dealer, players, count);
-        printCards(dealer, players);
+        dealInitCards(participants, deck);
+
+        cardDraw(participants.getPlayers(), deck);
+        cardDraw(participants.getDealer(), deck);
+
+        printResult(participants);
     }
 
-    private void printCards(final Dealer dealer, final Players players) {
-        outputView.printCards(new ParticipantDto(dealer.getName(), dealer.getCards()));
-        for (final Player player : players.getPlayers()) {
-            outputView.printCards(new ParticipantDto(player.getName(), player.getCards()));
+    //딜러와 플레이어는 하나의 리스트로 관리해도 괜찮지 않을까?
+    private Participants gatherParticipants() {
+        final List<Participant> participants = new ArrayList<>();
+        participants.add(new Dealer());
+        participants.addAll(createPlayers());
+        return new Participants(participants);
+    }
+
+    private List<Player> createPlayers() {
+        final List<String> playerNames = inputView.readPlayerNames();
+        return playerNames.stream()
+                .map(Player::new)
+                .collect(Collectors.toList());
+    }
+
+    private void dealInitCards(final Participants participants, final Deck deck) {
+        participants.takeCard(deck, INIT_CARD_COUNT);
+        final ParticipantDto dealer = ParticipantDto.from(participants.getDealer());
+        final List<ParticipantDto> players = createPlayerDto(participants.getPlayers());
+        outputView.printInitGame(dealer, players, INIT_CARD_COUNT);
+    }
+
+    private List<ParticipantDto> createPlayerDto(final List<Player> participants) {
+        return participants.stream()
+                .map(ParticipantDto::from)
+                .collect(Collectors.toList());
+    }
+
+    private void cardDraw(final List<Player> players, final Deck deck) {
+        for (final Player player : players) {
+            cardDraw(player, deck);
         }
     }
 
-    private void decideCardDraw(final Players players, final Deck deck) {
-        final List<Player> decidePlayers = players.getPlayers();
-        for (final Player decidePlayer : decidePlayers) {
-            decideCardDraw(decidePlayer, deck);
+    private void cardDraw(final Player player, final Deck deck) {
+        while (player.isDrawable(DRAW_LIMIT) && isWantToDraw(player)) {
+            player.takeCard(deck.draw());
+            outputView.printPlayerCards(ParticipantDto.from(player));
         }
     }
 
-    private void decideCardDraw(final Player player, final Deck deck) {
-        while (player.isDrawable() && isWantToHit(player)) {
-            player.addCard(deck.draw());
-            outputView.printCards(new ParticipantDto(player.getName(), player.getCards()));
-        }
-    }
-
-    private boolean isWantToHit(final Player player) {
+    private boolean isWantToDraw(final Player player) {
         final String input = inputView.readReceiveMore(player);
-        if (input.equals("y")) {
+        final DrawOption option = DrawOption.from(input);
+        if (option == DrawOption.HIT) {
             return true;
         }
         return false;
     }
 
-    private void decideCardDraw(final Dealer dealer, final Deck deck) {
-        if (dealer.getScore() <= 16) {
-            dealer.addCard(deck.draw());
+    private void cardDraw(final Dealer dealer, final Deck deck) {
+        if (dealer.isDrawable(DEALER_EXTRA_DRAW_LIMIT)) {
+            dealer.takeCard(deck.draw());
         }
-        outputView.printIsDealerHit(dealer);
+        outputView.printDealerHit(dealer);
     }
 
-    private Result calculateResult(final Dealer dealer, final Players players) {
-        final int dealerScore = dealer.getScore();
-        final Map<Player, Integer> playerScore = new LinkedHashMap<>();
+    private void printResult(final Participants participants) {
+        final Dealer dealer = participants.getDealer();
+        final List<Player> players = participants.getPlayers();
 
-        for (final Player player : players.getPlayers()) {
-            playerScore.put(player, player.getScore());
-        }
+        final ParticipantDto dealerDto = ParticipantDto.from(dealer);
+        final List<ParticipantDto> playerDto = createPlayerDto(players);
 
-        return new Result(dealerScore, playerScore);
+        outputView.printResult(dealerDto, playerDto);
+        outputView.printWinOrLose(dealerDto, playerDto);
     }
 }

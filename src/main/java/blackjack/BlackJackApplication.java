@@ -7,10 +7,10 @@ import blackjack.view.OutputView;
 public class BlackJackApplication {
 
     public static void main(String[] args) {
-        final var inputView = new InputView();
-        final var outputView = new OutputView();
+        final InputView inputView = new InputView();
+        final OutputView outputView = new OutputView();
 
-        final var blackJackController = new BlackJackController(inputView, outputView);
+        final BlackJackController blackJackController = new BlackJackController(inputView, outputView);
         blackJackController.run();
     }
 }
