@@ -7,6 +7,8 @@ import java.util.List;
 
 public abstract class Participant {
 
+    public static final String DEALER_NAME = "딜러";
+
     protected final Cards cards = new Cards();
 
     public void addCard(final Card card) {

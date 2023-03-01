@@ -1,5 +1,7 @@
 package blackjack.domain.participant;
 
+import static blackjack.domain.participant.Participant.DEALER_NAME;
+
 public class Name {
 
     private final String value;
@@ -16,7 +18,7 @@ public class Name {
         if (value.length() > 10) {
             throw new IllegalArgumentException();
         }
-        if (value.equals("딜러")) {
+        if (value.equals(DEALER_NAME)) {
             throw new IllegalArgumentException();
         }
     }

@@ -2,7 +2,7 @@ package blackjack.domain.participant;
 
 public class Dealer extends Participant {
 
-    private final String name = "딜러";
+    private final String name = DEALER_NAME;
 
     public boolean isHit() {
         if (cards.count() > 2) {
