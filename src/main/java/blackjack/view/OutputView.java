@@ -2,7 +2,7 @@ package blackjack.view;
 
 import static java.lang.String.format;
 
-import blackjack.domain.Result;
+import blackjack.view.dto.Result;
 import blackjack.domain.card.Card;
 import blackjack.domain.participant.Dealer;
 import blackjack.domain.participant.Participant;

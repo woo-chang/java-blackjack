@@ -1,4 +1,4 @@
-package blackjack.domain;
+package blackjack.view.dto;
 
 import blackjack.domain.participant.Player;
 import java.util.Map;
